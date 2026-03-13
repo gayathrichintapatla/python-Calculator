@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scientific Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080c14;
+    --surface: #0d1526;
+    --panel: #111d35;
+    --accent: #00d4ff;
+    --accent2: #7b5ea7;
+    --btn-base: #0f1e38;
+    --btn-hover: #1a2f52;
+    --btn-active: #0a3a5c;
+    --num: #c9e4ff;
+    --op: #00d4ff;
+    --fn: #a78bfa;
+    --eq-grad: linear-gradient(135deg, #0090b5, #00d4ff);
+    --danger: #ff6b6b;
+    --text-dim: #4a6fa0;
+    --glow: 0 0 18px #00d4ff55;
+    --radius: 10px;
+  }
+
+  body {
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Rajdhani', sans-serif;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, #00d4ff0a 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, #7b5ea70a 0%, transparent 50%);
+  }
+
+  .calc-wrap {
+    width: 360px;
+    background: var(--surface);
+    border-radius: 20px;
+    border: 1px solid #1a3060;
+    box-shadow: 0 30px 80px #00000080, 0 0 0 1px #ffffff08 inset;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .calc-header {
+    padding: 14px 20px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #1a3060;
+  }
+  .calc-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .calc-header .dot:nth-child(1) { background: #ff5f57; }
+  .calc-header .dot:nth-child(2) { background: #febc2e; }
+  .calc-header .dot:nth-child(3) { background: #28c840; }
+  .calc-title {
+    margin-left: auto;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  /* Display */
+  .display {
+    background: var(--panel);
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #1a3060;
+    position: relative;
+  }
+  .history-line {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    min-height: 16px;
+    text-align: right;
+    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .main-line {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 32px;
+    color: var(--num);
+    text-align: right;
+    min-height: 44px;
+    word-break: break-all;
+    line-height: 1.2;
+    transition: color 0.2s;
+  }
+  .main-line.error { color: var(--danger); font-size: 22px; }
+  .mode-badge {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    background: #00d4ff15;
+    border: 1px solid #00d4ff30;
+    border-radius: 4px;
+    padding: 2px 7px;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .mode-badge:hover { background: #00d4ff28; }
+
+  /* Buttons grid */
+  .btn-section {
+    padding: 14px 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .row { display: grid; gap: 8px; }
+  .row-5 { grid-template-columns: repeat(5, 1fr); }
+  .row-4 { grid-template-columns: repeat(4, 1fr); }
+  .row-3 { grid-template-columns: repeat(3, 1fr); }
+
+  .divider {
+    height: 1px;
+    background: #1a3060;
+    margin: 4px 0;
+  }
+
+  /* Button base */
+  button {
+    background: var(--btn-base);
+    border: 1px solid #1a3060;
+    border-radius: var(--radius);
+    color: var(--num);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    height: 52px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s, box-shadow 0.12s;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.5px;
+  }
+  button:hover { background: var(--btn-hover); border-color: #2a4a7a; }
+  button:active { transform: scale(0.94); background: var(--btn-active); }
+
+  button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, #ffffff18 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  button:active::after { opacity: 1; }
+
+  /* Variants */
+  button.fn {
+    color: var(--fn);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    border-color: #3a2a5a;
+    background: #12102a;
+  }
+  button.fn:hover { background: #1e1a40; border-color: #5a3a8a; }
+
+  button.op {
+    color: var(--op);
+    border-color: #0a3050;
+    background: #0a1828;
+  }
+  button.op:hover { background: #0f2540; border-color: #0a5070; box-shadow: var(--glow); }
+
+  button.eq {
+    background: var(--eq-grad);
+    border-color: transparent;
+    color: #001824;
+    font-size: 20px;
+    font-weight: bold;
+    box-shadow: 0 4px 18px #00d4ff40;
+    grid-column: span 2;
+  }
+  button.eq:hover { box-shadow: 0 6px 28px #00d4ff60; }
+  button.eq:active { transform: scale(0.96); }
+
+  button.clear {
+    color: var(--danger);
+    border-color: #3a1a1a;
+    background: #1a0808;
+  }
+  button.clear:hover { background: #2a1010; border-color: #7a2a2a; }
+
+  button.del {
+    color: #fbbf24;
+    border-color: #3a2a0a;
+    background: #1a1408;
+  }
+  button.del:hover { background: #2a2010; border-color: #7a5a10; }
+
+  button.paren {
+    color: #6ee7b7;
+    border-color: #0a3020;
+    background: #081a10;
+  }
+  button.paren:hover { background: #0f2a18; }
+
+  /* Ripple on click */
+  @keyframes ripple {
+    from { transform: scale(0); opacity: 0.3; }
+    to { transform: scale(4); opacity: 0; }
+  }
+  .ripple-el {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: white;
+    pointer-events: none;
+    animation: ripple 0.4s ease-out forwards;
+    transform-origin: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="calc-wrap">
+  <div class="calc-header">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="calc-title">Sci-Calc</span>
+  </div>
+
+  <div class="display">
+    <div class="mode-badge" onclick="toggleMode()" id="modeBadge">DEG</div>
+    <div class="history-line" id="histLine"></div>
+    <div class="main-line" id="mainLine">0</div>
+  </div>
+
+  <div class="btn-section">
+
+    <!-- Scientific row 1 -->
+    <div class="row row-5">
+      <button class="fn" onclick="applyFn('sin')">sin</button>
+      <button class="fn" onclick="applyFn('cos')">cos</button>
+      <button class="fn" onclick="applyFn('tan')">tan</button>
+      <button class="fn" onclick="applyFn('log')">log</button>
+      <button class="fn" onclick="applyFn('ln')">ln</button>
+    </div>
+
+    <!-- Scientific row 2 -->
+    <div class="row row-5">
+      <button class="fn" onclick="applyFn('asin')">sin⁻¹</button>
+      <button class="fn" onclick="applyFn('acos')">cos⁻¹</button>
+      <button class="fn" onclick="applyFn('atan')">tan⁻¹</button>
+      <button class="fn" onclick="applyFn('sqrt')">√</button>
+      <button class="fn" onclick="applyFn('square')">x²</button>
+    </div>
+
+    <!-- Scientific row 3 -->
+    <div class="row row-5">
+      <button class="fn" onclick="applyFn('pow10')">10ˣ</button>
+      <button class="fn" onclick="applyFn('exp')">eˣ</button>
+      <button class="fn" onclick="applyFn('abs')">|x|</button>
+      <button class="fn" onclick="appendVal('Math.PI')">π</button>
+      <button class="fn" onclick="appendVal('Math.E')">e</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Number + operator rows -->
+    <div class="row row-4">
+      <button class="clear" onclick="clearAll()">AC</button>
+      <button class="del" onclick="deleteLast()">⌫</button>
+      <button class="paren" onclick="appendVal('(')">(</button>
+      <button class="paren" onclick="appendVal(')')">)</button>
+    </div>
+
+    <div class="row row-4">
+      <button onclick="appendVal('7')">7</button>
+      <button onclick="appendVal('8')">8</button>
+      <button onclick="appendVal('9')">9</button>
+      <button class="op" onclick="appendVal('/')">÷</button>
+    </div>
+
+    <div class="row row-4">
+      <button onclick="appendVal('4')">4</button>
+      <button onclick="appendVal('5')">5</button>
+      <button onclick="appendVal('6')">6</button>
+      <button class="op" onclick="appendVal('*')">×</button>
+    </div>
+
+    <div class="row row-4">
+      <button onclick="appendVal('1')">1</button>
+      <button onclick="appendVal('2')">2</button>
+      <button onclick="appendVal('3')">3</button>
+      <button class="op" onclick="appendVal('-')">−</button>
+    </div>
+
+    <div class="row row-4">
+      <button onclick="appendVal('0')">0</button>
+      <button onclick="appendVal('.')">.</button>
+      <button class="op" onclick="appendVal('**')">xʸ</button>
+      <button class="op" onclick="appendVal('+')">+</button>
+    </div>
+
+    <div class="row row-4" style="grid-template-columns: 1fr 1fr 2fr;">
+      <button class="op" onclick="appendVal('%')">%</button>
+      <button class="op" onclick="toggleSign()">±</button>
+      <button class="eq" onclick="calculate()">=</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let expr = '';
+  let lastResult = '';
+  let isDeg = true;
+
+  const mainLine = document.getElementById('mainLine');
+  const histLine = document.getElementById('histLine');
+  const modeBadge = document.getElementById('modeBadge');
+
+  function toggleMode() {
+    isDeg = !isDeg;
+    modeBadge.textContent = isDeg ? 'DEG' : 'RAD';
+  }
+
+  function updateDisplay() {
+    const display = expr === '' ? '0' : expr
+      .replace(/Math\.PI/g, 'π')
+      .replace(/Math\.E/g, 'e')
+      .replace(/\*\*/g, '^')
+      .replace(/\*/g, '×')
+      .replace(/\//g, '÷');
+    mainLine.textContent = display;
+    mainLine.classList.remove('error');
+  }
+
+  function appendVal(val) {
+    if (mainLine.classList.contains('error')) { expr = ''; }
+    // Replace display ops back to real ops when appending after result
+    expr += val;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    expr = '';
+    lastResult = '';
+    histLine.textContent = '';
+    updateDisplay();
+  }
+
+  function deleteLast() {
+    if (mainLine.classList.contains('error')) { expr = ''; updateDisplay(); return; }
+    // Handle multi-char tokens
+    const tokens = ['Math.PI', 'Math.E'];
+    for (const t of tokens) {
+      if (expr.endsWith(t)) { expr = expr.slice(0, -t.length); updateDisplay(); return; }
+    }
+    expr = expr.slice(0, -1);
+    updateDisplay();
+  }
+
+  function calculate() {
+    if (!expr) return;
+    try {
+      const raw = expr;
+      const evaluated = Function('"use strict"; return (' + expr + ')')();
+      if (typeof evaluated !== 'number' || isNaN(evaluated)) throw new Error();
+      const result = parseFloat(evaluated.toPrecision(12)).toString();
+      histLine.textContent = raw
+        .replace(/Math\.PI/g, 'π')
+        .replace(/Math\.E/g, 'e')
+        .replace(/\*\*/g, '^')
+        .replace(/\*/g, '×')
+        .replace(/\//g, '÷') + ' =';
+      expr = result;
+      lastResult = result;
+      updateDisplay();
+    } catch {
+      mainLine.textContent = 'Error';
+      mainLine.classList.add('error');
+    }
+  }
+
+  function toRad(v) { return isDeg ? v * Math.PI / 180 : v; }
+  function fromRad(v) { return isDeg ? v * 180 / Math.PI : v; }
+
+  function applyFn(fn) {
+    if (mainLine.classList.contains('error')) { expr = ''; return; }
+    try {
+      let val = expr === '' ? 0 : Function('"use strict"; return (' + expr + ')')();
+      let result;
+      switch(fn) {
+        case 'sin':    result = Math.sin(toRad(val)); break;
+        case 'cos':    result = Math.cos(toRad(val)); break;
+        case 'tan':    result = Math.tan(toRad(val)); break;
+        case 'asin':   result = fromRad(Math.asin(val)); break;
+        case 'acos':   result = fromRad(Math.acos(val)); break;
+        case 'atan':   result = fromRad(Math.atan(val)); break;
+        case 'log':    result = Math.log10(val); break;
+        case 'ln':     result = Math.log(val); break;
+        case 'sqrt':   result = Math.sqrt(val); break;
+        case 'square': result = val * val; break;
+        case 'pow10':  result = Math.pow(10, val); break;
+        case 'exp':    result = Math.exp(val); break;
+        case 'abs':    result = Math.abs(val); break;
+      }
+      if (isNaN(result) || !isFinite(result)) throw new Error();
+      const disp = expr
+        .replace(/Math\.PI/g, 'π')
+        .replace(/Math\.E/g, 'e')
+        .replace(/\*\*/g, '^')
+        .replace(/\*/g, '×')
+        .replace(/\//g, '÷');
+      histLine.textContent = fn + '(' + disp + ') =';
+      expr = parseFloat(result.toPrecision(12)).toString();
+      updateDisplay();
+    } catch {
+      mainLine.textContent = 'Error';
+      mainLine.classList.add('error');
+    }
+  }
+
+  function toggleSign() {
+    if (!expr) return;
+    try {
+      const val = Function('"use strict"; return (' + expr + ')')();
+      expr = String(-val);
+      updateDisplay();
+    } catch {}
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') appendVal(e.key);
+    else if (e.key === '+') appendVal('+');
+    else if (e.key === '-') appendVal('-');
+    else if (e.key === '*') appendVal('*');
+    else if (e.key === '/') { e.preventDefault(); appendVal('/'); }
+    else if (e.key === '.') appendVal('.');
+    else if (e.key === '%') appendVal('%');
+    else if (e.key === '^') appendVal('**');
+    else if (e.key === '(') appendVal('(');
+    else if (e.key === ')') appendVal(')');
+    else if (e.key === 'Enter' || e.key === '=') calculate();
+    else if (e.key === 'Backspace') deleteLast();
+    else if (e.key === 'Escape') clearAll();
+  });
+
+  // Ripple effect
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const r = document.createElement('span');
+      r.className = 'ripple-el';
+      const rect = btn.getBoundingClientRect();
+      r.style.left = (e.clientX - rect.left - 10) + 'px';
+      r.style.top = (e.clientY - rect.top - 10) + 'px';
+      btn.appendChild(r);
+      setTimeout(() => r.remove(), 400);
+    });
+  });
+</script>
+</body>
+</html>
